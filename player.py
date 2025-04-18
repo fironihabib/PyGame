@@ -13,17 +13,15 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-        self.vel_x = 0
+        self.speed = 5
+        self.jump_force = -15
+        self.gravity = 1
+        self.fall_speed = 10
+
         self.vel_y = 0
-        self.acceleration = PLAYER_ACCELERATION
-        self.friction = PLAYER_FRICTION
-
         self.jumping = False
-        self.facing_right = True
         self.on_ground = False
-
-        self.current_frame = 0
-        self.last_update = 0
+        self.facing_right = True
         self.state = "idle"
 
         self.invulnerable = False
@@ -41,11 +39,11 @@ class Player(pygame.sprite.Sprite):
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
-            if (event.key == pygame.K_w or event.key == pygame.K_UP or event.key == pygame.K_SPACE) and self.on_ground:
+            if (event.key in [pygame.K_w, pygame.K_UP, pygame.K_SPACE]) and self.on_ground:
                 self.jump()
 
     def jump(self):
-        self.vel_y = PLAYER_JUMP_FORCE
+        self.vel_y = self.jump_force
         self.jumping = True
         self.on_ground = False
 
@@ -58,77 +56,63 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         now = pygame.time.get_ticks()
-
         if self.invulnerable and now - self.invulnerable_timer > 2000:
             self.invulnerable = False
 
         self.handle_movement()
-        print("Player velocity:", self.vel_x, self.vel_y)
-
-        self.apply_physics()
+        self.apply_gravity()
         self.check_collisions()
         self.animate()
 
     def handle_movement(self):
-        self.vel_x *= self.friction/4
-       # self.rect.x= int(self.rect.x)+(2*self.vel_x)
-
         keys = pygame.key.get_pressed()
         if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            self.vel_x -= self.acceleration
+            self.speed = -5
+            self.rect.x += self.speed
             self.facing_right = False
             self.state = "run"
-
-        if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            self.vel_x += self.acceleration
+        elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+            self.speed = 5
+            self.rect.x += self.speed
             self.facing_right = True
             self.state = "run"
-
-        if abs(self.vel_x) < 0.5:
-            self.vel_x = 0
+        else:
             if self.on_ground:
                 self.state = "idle"
 
-    def apply_physics(self):
-        self.vel_y += GRAVITY
+    def apply_gravity(self):
+        self.vel_y += self.gravity
+        if self.vel_y > self.fall_speed:
+            self.vel_y = self.fall_speed
 
-        if self.vel_y > MAX_FALL_SPEED:
-            self.vel_y = MAX_FALL_SPEED
-
-        self.rect.x += (self.vel_x)
-        self.rect.y += (self.vel_y)
+        self.rect.y += self.vel_y
 
         if self.vel_y > 0 and not self.on_ground:
             self.state = "fall"
         elif self.vel_y < 0:
             self.state = "jump"
-        print(self.state)
+
     def check_collisions(self):
         self.on_ground = False
-
         hits = pygame.sprite.spritecollide(self, self.game.platforms, False)
+
         for platform in hits:
             if self.vel_y > 0 and self.rect.bottom > platform.rect.top and self.rect.bottom < platform.rect.bottom:
                 self.rect.bottom = platform.rect.top
                 self.vel_y = 0
                 self.on_ground = True
                 self.jumping = False
-            elif self.vel_y < 0 and self.rect.top < platform.rect.bottom and self.rect.top > platform.rect.top:
+            elif self.vel_y < 0 and self.rect.top < platform.rect.bottom:
                 self.rect.top = platform.rect.bottom
                 self.vel_y = 0
-            elif self.vel_x > 0 and self.rect.right > platform.rect.left+1 and self.rect.right < platform.rect.right-1:
-                self.rect.right = platform.rect.left
-                self.vel_x = 0
-            elif self.vel_x < 0 and self.rect.left < platform.rect.right and self.rect.left > platform.rect.left:
-                self.rect.left = platform.rect.right
-                self.vel_x = 0
+          
 
     def animate(self):
-        if self.invulnerable:
-            now = pygame.time.get_ticks()
-            if (now // 200) % 2 == 0:
-                self.image.fill(BLUE)
-            else:
-                self.image.fill((0, 0, 0, 0))  # Transparent
-        else:
-            self.image.fill(BLUE)
+            if self.state == "idle":
+               self.image = pygame.image.load("assets/sprites/rocket_up.png").convert_alpha()
+            elif self.state == "jump":
+               self.image = pygame.image.load("assets/sprites/rocket_up.png").convert_alpha()
+            elif self.speed > 0:
+               self.image = pygame.image.load("assets/sprites/rocket_right.png").convert_alpha()
+            elif self.speed < 0:
+                self.image = pygame.image.load("assets/sprites/rocket_left.png").convert_alpha() 

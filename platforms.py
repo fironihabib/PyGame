@@ -6,8 +6,8 @@ class Platform(pygame.sprite.Sprite):
         super().__init__()
         
         # Create a simple platform sprite
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
-        self.image.fill(GREEN)  # Green rectangle as platform placeholder
+        self.image = pygame.image.load("assets/sprites/platform.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (TILE_SIZE, TILE_SIZE))
         
         # Set up rect and position
         self.rect = self.image.get_rect()
